@@ -200,3 +200,10 @@ class AIChatMessage(BaseModel):
 class AIChatResponse(BaseModel):
     response: str
     timestamp: str
+
+# Insight Exploration (ADK agent) Schemas
+class InsightExplorationQuery(BaseModel):
+    query: str
+
+class InsightExplorationResponse(BaseModel):
+    content: str

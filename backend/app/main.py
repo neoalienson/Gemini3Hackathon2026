@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import data_sources, data_cubes, dashboards, data_marketplace, data_entitlement, app_config
+from .routers import data_sources, data_cubes, dashboards, data_marketplace, data_entitlement, app_config, insight_exploration
 import logging
 
 # Configure application logging so router loggers (e.g. data_sources) emit INFO logs
@@ -35,6 +35,7 @@ app.include_router(dashboards.router)
 app.include_router(data_marketplace.router)
 app.include_router(data_entitlement.router)
 app.include_router(app_config.router)
+app.include_router(insight_exploration.router)
 
 @app.get("/")
 def root():

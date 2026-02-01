@@ -1,7 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import ReactMarkdown from 'react-markdown';
 import Layout from '@/components/Layout';
+
+const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 import { Dashboard, Widget } from '@/lib/types';
 import { Send, Loader, Sparkles } from 'lucide-react';
 import {
@@ -34,6 +38,7 @@ export default function NewDashboardPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [dashboard, setDashboard] = useState<Partial<Dashboard> | null>(null);
+  const [visualizationCharts, setVisualizationCharts] = useState<Array<{ title?: string; echartsConfig: object; data?: unknown[]; chartType?: string }>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -62,30 +67,99 @@ export default function NewDashboardPage() {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    setVisualizationCharts([]);
 
-    // Simulate AI response and dashboard generation
-    setTimeout(() => {
-      const isFirstMessage = messages.length === 0;
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: generateAIResponse(userMessage.content, isFirstMessage),
-        timestamp: new Date(),
-      };
+    const isFirstMessage = messages.length === 0;
+    const assistantId = (Date.now() + 1).toString();
+    let content = '';
+    const progressLines: string[] = [];
 
-      setMessages((prev) => [...prev, assistantMessage]);
-      
-      // Generate or update dashboard preview based on description
-      if (isFirstMessage) {
-        const generatedDashboard = generateDashboardFromDescription(userMessage.content);
-        setDashboard(generatedDashboard);
-      } else {
-        // For follow-up messages, update the existing dashboard
-        const updatedDashboard = updateDashboardFromMessage(userMessage.content, dashboard);
-        setDashboard(updatedDashboard);
+    const assistantMessage: Message = {
+      id: assistantId,
+      role: 'assistant',
+      content: 'Generating query plan...',
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, assistantMessage]);
+
+    try {
+      const res = await fetch('/api/insight-exploration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: userMessage.content }),
+      });
+
+      if (!res.ok || !res.body) {
+        const err = await res.text();
+        throw new Error(err || 'Request failed');
       }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const chunk = JSON.parse(line);
+            if (chunk.type === 'query_plan') {
+              content = `## Query Plan\n\n${chunk.content || ''}\n\n---\n\n**Progress:**\n`;
+              progressLines.length = 0;
+            } else if (chunk.type === 'progress') {
+              progressLines.push(`- ${chunk.message || 'Running...'}`);
+              content = content.replace(/---\n\n\*\*Progress:\*\*\n[\s\S]*$/, '') +
+                `---\n\n**Progress:**\n${progressLines.join('\n')}`;
+            } else if (chunk.type === 'final_answer') {
+              content = content + `\n\n---\n\n## Answer\n\n${chunk.content || ''}`;
+            } else if (chunk.type === 'visualization' && Array.isArray(chunk.charts)) {
+              setVisualizationCharts(chunk.charts);
+            } else if (chunk.type === 'error') {
+              content = content ? `${content}\n\n**Error:** ${chunk.content}` : `Error: ${chunk.content}`;
+            }
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, content: content || m.content } : m
+              )
+            );
+          } catch (_) {
+            // skip malformed lines
+          }
+        }
+      }
+
+      if (!content) {
+        content = generateAIResponse(userMessage.content, isFirstMessage);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, content } : m))
+        );
+      }
+
+      if (isFirstMessage) {
+        setDashboard(generateDashboardFromDescription(userMessage.content));
+      } else {
+        setDashboard(updateDashboardFromMessage(userMessage.content, dashboard));
+      }
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : 'Something went wrong';
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId ? { ...m, content: `Error: ${errMsg}` } : m
+        )
+      );
+      if (isFirstMessage) {
+        setDashboard(generateDashboardFromDescription(userMessage.content));
+      } else {
+        setDashboard(updateDashboardFromMessage(userMessage.content, dashboard));
+      }
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const generateAIResponse = (userInput: string, isFirstMessage: boolean): string => {
@@ -403,7 +477,13 @@ export default function NewDashboardPage() {
                           : 'glass text-white'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                      {message.role === 'assistant' ? (
+                        <div className="text-sm leading-relaxed text-white [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_p]:my-1 [&_ul]:my-2 [&_li]:my-0 [&_strong]:font-semibold [&_hr]:my-2 [&_hr]:border-white/20">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                      )}
                       <p className={`text-xs mt-2 ${
                         message.role === 'user' ? 'text-white' : 'text-white'
                       }`}>
@@ -452,6 +532,41 @@ export default function NewDashboardPage() {
             {/* Canvas Panel - Right */}
             <div className="flex-1 overflow-y-auto rounded-2xl">
               <div className="h-full p-6">
+                {visualizationCharts.length > 0 ? (
+                  <div className="space-y-6">
+                    <div className="glass rounded-2xl p-6 shadow-xl border border-white/10">
+                      <h2 className="text-2xl font-bold text-soft-mint mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                        Data Visualization
+                      </h2>
+                      <p className="text-white text-sm">
+                        Generated visualizations from query results
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {visualizationCharts.map((chart, idx) => (
+                        <div
+                          key={idx}
+                          className="glass rounded-2xl p-6 shadow-lg border border-white/10 animate-fade-in"
+                          style={{ minHeight: 420 }}
+                        >
+                          {chart.title && (
+                            <h3 className="text-lg font-semibold text-soft-mint mb-4">
+                              {chart.title}
+                            </h3>
+                          )}
+                          {chart.echartsConfig && (
+                            <ReactECharts
+                              option={chart.echartsConfig}
+                              style={{ height: 380, width: '100%', minHeight: 380 }}
+                              notMerge
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <>
                 <div className="mb-6 glass rounded-2xl p-6 shadow-xl border border-white/10">
                   <h2 className="text-2xl font-bold text-soft-mint mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                     {dashboard?.name || 'Dashboard Preview'}
@@ -591,6 +706,8 @@ export default function NewDashboardPage() {
                     </div>
                     <p className="text-white text-lg">Waiting for dashboard description...</p>
                   </div>
+                )}
+                  </>
                 )}
               </div>
             </div>

@@ -11,4 +11,8 @@ google-cloud-bigquery==3.13.0
 psycopg2-binary==2.9.9
 cloud-sql-python-connector[pymysql]
 # Vertex AI: Google Gen AI SDK (no LangChain)
-google-genai>=1.0.0
+google-genai
+# Google Agent Development Kit for insight exploration
+google-adk
+# Data processing for consolidation step
+pandas>=2.0.0
