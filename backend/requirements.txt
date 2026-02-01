@@ -1,18 +1,29 @@
+# Web framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
+
+# Database & ORM
 sqlalchemy==2.0.23
 pymysql==1.1.0
 cryptography==41.0.7
+psycopg2-binary==2.9.9
+cloud-sql-python-connector[pymysql]
+
+# Config & validation
 python-dotenv==1.0.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
+
+# Google Cloud & Vertex AI
 google-auth>=2.0.0
+google-api-core>=2.0.0
 google-cloud-bigquery==3.13.0
-psycopg2-binary==2.9.9
-cloud-sql-python-connector[pymysql]
+
 # Vertex AI: Google Gen AI SDK (no LangChain)
 google-genai
+
 # Google Agent Development Kit for insight exploration
 google-adk
+
 # Data processing for consolidation step
 pandas>=2.0.0

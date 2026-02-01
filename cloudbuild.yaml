@@ -22,6 +22,7 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      # Env vars aligned with backend/.env (secrets via --set-secrets)
       - '--set-env-vars'
       - 'ENV=GCP,DB_HOST=35.239.204.217,DB_PORT=3306,DB_USER=sysdba,DB_NAME=securebi,INSTANCE_CONNECTION_NAME=smart-inn-484713-c1:us-central1:free-trial-first-project,USE_VERTEX_AI=true,GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=smart-inn-484713-c1,GOOGLE_CLOUD_LOCATION=us-central1,GEMINI_MODEL_NAME=gemini-2.5-flash-lite'
       - '--set-secrets'
