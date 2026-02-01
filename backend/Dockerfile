@@ -19,8 +19,10 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies: install google-genai and google-adk first so pip
+# does not backtrack to ancient versions (e.g. google-adk 0.0.1 without google.adk module)
 RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir "google-genai>=1.30.0" "google-adk>=1.15.0" && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application code

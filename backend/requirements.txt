@@ -20,10 +20,12 @@ google-api-core>=2.0.0
 google-cloud-bigquery==3.13.0
 
 # Vertex AI: Google Gen AI SDK (no LangChain)
-google-genai
+# Pin minimum so pip cannot resolve to 1.4.x (missing APIs)
+google-genai>=1.30.0
 
-# Google Agent Development Kit for insight exploration
-google-adk
+# Google Agent Development Kit (provides google.adk namespace)
+# Pin minimum so pip cannot resolve to 0.0.1 (no google.adk module)
+google-adk>=1.15.0
 
 # Data processing for consolidation step
 pandas>=2.0.0
