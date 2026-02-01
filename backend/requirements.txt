@@ -1,6 +1,6 @@
-# Web framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
+# Web framework (FastAPI/Starlette >=0.115 use anyio 4.x; required by google-genai)
+fastapi>=0.115.0
+uvicorn[standard]>=0.24.0
 
 # Database & ORM
 sqlalchemy==2.0.23
@@ -9,23 +9,23 @@ cryptography==41.0.7
 psycopg2-binary==2.9.9
 cloud-sql-python-connector[pymysql]
 
-# Config & validation
+# Config & validation (pydantic 2.7+ for FastAPI 0.128)
 python-dotenv==1.0.0
-pydantic==2.5.0
-pydantic-settings==2.1.0
+pydantic>=2.5.0
+pydantic-settings>=2.0.0
 
 # Google Cloud & Vertex AI
 google-auth>=2.0.0
-google-api-core>=2.0.0
+google-api-core==2.19.2
 google-cloud-bigquery==3.13.0
 
 # Vertex AI: Google Gen AI SDK (no LangChain)
 # Pin minimum so pip cannot resolve to 1.4.x (missing APIs)
-google-genai>=1.30.0
+google-genai==1.60.0
 
 # Google Agent Development Kit (provides google.adk namespace)
 # Pin minimum so pip cannot resolve to 0.0.1 (no google.adk module)
-google-adk>=1.15.0
+google-adk==1.23.0
 
 # Data processing for consolidation step
 pandas>=2.0.0
