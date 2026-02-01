@@ -18,6 +18,9 @@ pydantic-settings>=2.0.0
 google-auth>=2.0.0
 google-api-core==2.19.2
 google-cloud-bigquery==3.13.0
+# Pin ADK transitive deps to exact versions so pip doesn't backtrack through dozens
+google-cloud-pubsub==2.34.0
+google-cloud-spanner==3.62.0
 
 # Vertex AI: Google Gen AI SDK (no LangChain)
 # Pin minimum so pip cannot resolve to 1.4.x (missing APIs)
